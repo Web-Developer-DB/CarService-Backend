@@ -25,7 +25,7 @@
   "contributors": [],
   "scripts": {
     "dev": "nodemon --env-file .env app.js",
-    "test": "ava",
+    "test": "jest",
     "start": "node app.js"
   },
   "dependencies": {

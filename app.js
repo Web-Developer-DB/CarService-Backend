@@ -1,11 +1,14 @@
 import express from 'express'  
 import cors from 'cors'
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
 import { readFile } from 'fs/promises'; // Verwenden Sie fs promises API für modernen, asynchronen Code
 import { marked } from 'marked'; // Importieren Sie marked für die Markdown-Konvertierung
 import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './src/config/db.js'
 import routes from './src/routes/indexRoute.js'
+import { errorHandler, notFound } from './src/middleware/errorHandler.js'
 
 
 const app = express()
@@ -13,8 +16,26 @@ const PORT = process.env.PORT || 3000
 
 
 // Middleware
-app.use(express.json())
-app.use(cors())
+app.disable('x-powered-by')
+app.use(express.json({ limit: '1mb' }))
+app.use(helmet())
+
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+  : [];
+
+app.use(cors({
+  origin: corsOrigins.length > 0 ? corsOrigins : true,
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+}))
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 
 // Konvertieren __dirname in einem ES Module Kontext
@@ -42,20 +63,18 @@ app.get('/', async (req, res) => {
 });
 
 
-app.use('/api', routes)  // Verwenden Sie die routes, wenn der Pfad /api ist
+app.use('/api', apiLimiter, routes)  // Verwenden Sie die routes, wenn der Pfad /api ist
 
-
-// 404 Fehlerbehandlung
-app.all('*', (req, res) => {
-  console.log(`404 - Die Route ${req.originalUrl} existiert nicht.`);
-  res.status(404).send('Die angeforderte Ressource wurde nicht gefunden.');
-});
+app.use(notFound)
+app.use(errorHandler)
 
 // Verbindung zur Datenbank und Starten des Servers
-connectDB().then(() => {
-  app.listen(PORT, console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`))
+if (process.env.NODE_ENV !== 'test') {
+  connectDB().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+    })
+  }).catch((error) => console.log('Error:', error.message))
 }
-).catch((error) => console.log('Error:', error.message))
 
 export default app // Export für den Test
-

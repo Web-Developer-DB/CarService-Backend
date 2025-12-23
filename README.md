@@ -22,6 +22,12 @@ Das Backend dieser Anwendung nutzt eine Vielzahl von Technologien und NPM-Pakete
 
 - **cors**: Ein Paket, das Cross-Origin Resource Sharing ermöglicht, um RESTful APIs sicher über verschiedene Domains hinweg zugänglich zu machen.
 - **body-parser**: Parse Middleware, die eingehende Request Bodies in einer Middleware vor dem Handler verfügbar macht.
+- **helmet**: Setzt sichere HTTP-Header für typische Web-Schwachstellen.
+- **express-rate-limit**: Rate Limiting für API- und Auth-Endpunkte.
+
+## Validierung
+
+- **joi**: Validierung und Sanitizing von Request-Body und Parametern.
 
 ## Entwicklung und Testing
 
@@ -50,13 +56,28 @@ Diese Maßnahmen helfen dabei, eine robuste und sichere Backend-Anwendung zu gew
 
 - Node.js und npm müssen installiert sein.
 - Eine MongoDB-Datenbank ist erforderlich.
-- Eine `.env` Datei mit den notwendigen Umgebungsvariablen (z.B. Datenbank-URL, JWT-Secret).
+- Eine `.env` Datei mit den notwendigen Umgebungsvariablen (Beispiel: `.env.example`).
+
+## Konfiguration (.env) ⚙️
+
+Pflicht:
+
+- `MONGODB_URI`: MongoDB-Verbindungsstring
+- `JWT_SECRET`: Secret für JWT-Signaturen
+
+Optional:
+
+- `PORT`: Server-Port (Default: 3000)
+- `JWT_ISSUER`: Optionaler Issuer-Claim für JWTs
+- `JWT_AUDIENCE`: Optionaler Audience-Claim für JWTs
+- `CORS_ORIGINS`: Komma-separierte Origin-Whitelist (z. B. `http://localhost:5173,http://localhost:3000`)
 
 ## Installation  🛠️
 
 1. Klonen Sie das Repository und navigieren Sie in das Projektverzeichnis.
 2. Installieren Sie die Abhängigkeiten mit `npm install`.
-3. Starten Sie den Server mit `npm run dev`. Der Server läuft standardmäßig auf Port 3000, es sei denn, ein anderer Port ist in der `.env` Datei festgelegt.
+3. Starten Sie den Server mit `npm run dev` oder `npm run start`.
+4. Führen Sie Tests mit `npm test` aus (nutzt standardmäßig eine In-Memory MongoDB).
 
 ## Verwendung der API  📡
 
@@ -100,10 +121,11 @@ Die API bietet Endpunkte zur Verwaltung von Benutzer- und Fahrzeugdaten. Für ei
 
 - `POST /api/cars/addCar`
   - Erfordert Authentifizierung. Erwartet JSON mit Fahrzeugdetails.
+  - `userId` wird aus dem JWT abgeleitet und nicht aus dem Body übernommen.
+  - History-Arrays werden serverseitig gepflegt.
 
 ```json
 {
-  "userId": "5f8d0d55b54764421b7156d5",
   "fahrzeugart": "PKW",
   "kennzeichen": "B-XY123",
   "marke": "Volkswagen",
@@ -116,36 +138,7 @@ Die API bietet Endpunkte zur Verwaltung von Benutzer- und Fahrzeugdaten. Für ei
   "kilometerstand": 85000,
   "nächsteTüvUntersuchung": "2023-10-30",
   "nächsteoelwechsel": "2023-09-20",
-  "nächsteoelwechselKm": 95000,
-  "kilometerstandHistory": [
-    {
-      "datum": "2021-05-20",
-      "kilometerstand": 75000
-    },
-    {
-      "datum": "2022-05-20",
-      "kilometerstand": 80000
-    }
-  ],
-  "tuevHistory": [
-    {
-      "datum": "2021-06-15",
-      "bemerkung": "ohne Mängel bestanden"
-    }
-  ],
-  "oelwechselHistory": [
-    {
-      "datum": "2022-01-10",
-      "kilometerstand": 78000,
-      "naechsterOelwechselKm": 93000
-    }
-  ],
-  "serviceHistory": [
-    {
-      "datum": "2022-04-22",
-      "beschreibung": "Jahresservice inklusive Bremsenprüfung"
-    }
-  ]
+  "nächsteoelwechselKm": 95000
 }
 
 
@@ -262,11 +255,13 @@ Die API sendet spezifische Fehlermeldungen und Statuscodes zurück, wenn Problem
 - `400 Bad Request`: Fehlende oder ungültige Anforderungsdaten.
 - `401 Unauthorized`: Fehlende oder ungültige Authentifizierung.
 - `404 Not Found`: Ressource nicht gefunden.
+- `422 Unprocessable Entity`: Validierungsfehler bei Body oder Parametern.
 - `500 Internal Server Error`: Allgemeiner Serverfehler.
 
 ## Sicherheit 🛡️
 
 Die API verwendet JWTs (JSON Web Tokens) für die Authentifizierung. Es ist wichtig, dass der JWT geheim gehalten und sicher übertragen wird. Zusätzlich wird empfohlen, HTTPS zu verwenden, um die Datenübertragung zu verschlüsseln.
+Zusätzlich werden sichere HTTP-Header (helmet), Rate Limiting und eine Origin-Whitelist via CORS unterstützt.
 
 
 ## 🔒 Erfordert Authentifizierung  
@@ -286,7 +281,7 @@ Die folgenden Endpunkte erfordern, dass der `Authorization`-Header mit einem gü
 - **Benutzer löschen**: `DELETE /api/users/delete-user`
 - **Benutzerdaten abrufen**: `GET /api/users/:userId`
 - **Benutzerdaten aktualisieren**: `PUT /api/users/update-user`
-- **Fahrzeug registrieren**: `POST /api/cars/`
+- **Fahrzeug registrieren**: `POST /api/cars/addCar`
 - **Kilometerstand hinzufügen**: `POST /api/cars/:carId/kilometerstand`
 - **TÜV-Eintrag hinzufügen**: `POST /api/cars/:carId/tuev`
 - **Ölwechsel-Eintrag hinzufügen**: `POST /api/cars/:carId/oelwechsel`
@@ -306,3 +301,8 @@ Die folgenden Endpunkte erfordern, dass der `Authorization`-Header mit einem gü
 - **HTTPS verwenden**: Für die Kommunikation mit der API sollte stets HTTPS verwendet werden, um die Übertragung des Tokens zu verschlüsseln.
 
 Diese Authentifizierungsmethode sorgt für eine sichere und kontrollierte Nutzung der API, indem sie den Zugriff auf sensible Endpunkte auf autorisierte Benutzer beschränkt.
+
+## Tests ✅
+
+- `npm test` verwendet standardmäßig eine In-Memory MongoDB.
+- Optional kann `MONGO_TEST_URL` gesetzt werden, um eine externe Test-DB zu nutzen.

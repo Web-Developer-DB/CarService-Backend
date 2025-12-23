@@ -1,3 +1,7 @@
+
+
+
+
 import mongoose from 'mongoose';
 
 const carSchema = new mongoose.Schema({
@@ -35,6 +39,8 @@ const carSchema = new mongoose.Schema({
     beschreibung: String, // Beschreibung des durchgeführten Services
   }]
 });
+
+carSchema.index({ userId: 1 });
 
 const Car = mongoose.model('Car', carSchema);
 

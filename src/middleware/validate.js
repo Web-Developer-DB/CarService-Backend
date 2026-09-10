@@ -1,33 +1,12 @@
-export const validateBody = (schema) => (req, res, next) => {
-  const { error, value } = schema.validate(req.body, {
-    abortEarly: false,
-    stripUnknown: true
-  });
+import { ApiError } from './errors.js';
 
-  if (error) {
-    return res.status(422).json({
-      message: 'Ungültige Eingaben.',
-      details: error.details.map((detail) => detail.message)
-    });
-  }
-
-  req.body = value;
-  next();
+const validate = (target, schema) => (req, _res, next) => {
+  const { error, value } = schema.validate(req[target], { abortEarly: false, stripUnknown: false, convert: true });
+  if (error) return next(new ApiError(400, error.details.map(({ message }) => message).join('; '), 'VALIDATION_ERROR'));
+  req[target] = value;
+  return next();
 };
 
-export const validateParams = (schema) => (req, res, next) => {
-  const { error, value } = schema.validate(req.params, {
-    abortEarly: false,
-    stripUnknown: true
-  });
-
-  if (error) {
-    return res.status(422).json({
-      message: 'Ungültige Eingaben.',
-      details: error.details.map((detail) => detail.message)
-    });
-  }
-
-  req.params = value;
-  next();
-};
+export const validateBody = (schema) => validate('body', schema);
+export const validateParams = (schema) => validate('params', schema);
+export const validateQuery = (schema) => validate('query', schema);

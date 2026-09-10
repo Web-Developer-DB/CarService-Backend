@@ -1,80 +1,65 @@
-import express from 'express'  
-import cors from 'cors'
-import helmet from 'helmet'
-import rateLimit from 'express-rate-limit'
-import { readFile } from 'fs/promises'; // Verwenden Sie fs promises API für modernen, asynchronen Code
-import { marked } from 'marked'; // Importieren Sie marked für die Markdown-Konvertierung
-import path from 'path';
-import { fileURLToPath } from 'url';
-import connectDB from './src/config/db.js'
-import routes from './src/routes/indexRoute.js'
-import { errorHandler, notFound } from './src/middleware/errorHandler.js'
+import cors from 'cors';
+import express from 'express';
+import helmet from 'helmet';
+import pinoHttp from 'pino-http';
+import { randomUUID } from 'node:crypto';
+import { createLogger } from './src/config/logger.js';
+import { createApiRouter } from './src/routes/api.js';
+import { createRateLimiters } from './src/middleware/rateLimiters.js';
+import { errorHandler, notFound } from './src/middleware/errors.js';
 
+export const createApp = ({ config, redisClient, mailer, logger = createLogger(config) }) => {
+  const app = express();
+  const limits = createRateLimiters({ config, redisClient });
+  const allowedOrigins = new Set(config.corsOrigins);
 
-const app = express()
-const PORT = process.env.PORT || 3000
-
-
-// Middleware
-app.disable('x-powered-by')
-app.use(express.json({ limit: '1mb' }))
-app.use(helmet())
-
-const corsOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
-  : [];
-
-app.use(cors({
-  origin: corsOrigins.length > 0 ? corsOrigins : true,
-  credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-}))
-
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
-
-// Konvertieren __dirname in einem ES Module Kontext
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-
-
-app.get('/', async (req, res) => {
-  try {
-    // Pfad zur README.md Datei
-    const mdPath = path.join(__dirname, 'README.md');
-    
-    // Lesen der Markdown-Datei
-    const markdown = await readFile(mdPath, 'utf8');
-    
-    // Konvertieren von Markdown zu HTML
-    const html = marked(markdown);
-    
-    // Senden des konvertierten HTML-Inhalts
-    res.send(html);
-  } catch (err) {
-    res.status(500).send('Fehler beim Lesen der Markdown-Datei');
-  }
-});
-
-
-app.use('/api', apiLimiter, routes)  // Verwenden Sie die routes, wenn der Pfad /api ist
-
-app.use(notFound)
-app.use(errorHandler)
-
-// Verbindung zur Datenbank und Starten des Servers
-if (process.env.NODE_ENV !== 'test') {
-  connectDB().then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+  app.disable('x-powered-by');
+  app.set('trust proxy', config.trustProxy);
+  app.use(
+    pinoHttp({
+      logger,
+      genReqId: (req, res) => req.headers['x-request-id'] || res.getHeader('x-request-id') || randomUUID(),
+      customLogLevel: (_req, res, error) =>
+        error || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info',
+      redact: [
+        'req.headers.authorization',
+        'req.headers.cookie',
+        'req.body.password',
+        'req.body.currentPassword',
+        'req.body.newPassword',
+        'req.body.token'
+      ]
     })
-  }).catch((error) => console.log('Error:', error.message))
-}
+  );
+  app.use((req, res, next) => {
+    res.setHeader('x-request-id', req.id);
+    next();
+  });
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-site' } }));
+  app.use(
+    cors({
+      origin(origin, callback) {
+        if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+        return callback(
+          Object.assign(new Error('Origin is not allowed by CORS'), { status: 403, code: 'CORS_DENIED' })
+        );
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Authorization', 'Content-Type', 'X-CSRF-Token', 'X-Request-Id'],
+      exposedHeaders: ['X-Request-Id'],
+      maxAge: 600
+    })
+  );
+  app.use(express.json({ limit: config.bodyLimit }));
 
-export default app // Export für den Test
+  app.get('/health/live', (_req, res) => res.status(200).json({ status: 'ok' }));
+  app.get('/health/ready', (_req, res) => {
+    const ready = config.isDatabaseReady();
+    res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready' });
+  });
+  app.use('/api/v2', limits.api, createApiRouter({ config, redisClient, mailer, limits }));
+  app.use(notFound);
+  app.use(errorHandler);
+  return app;
+};

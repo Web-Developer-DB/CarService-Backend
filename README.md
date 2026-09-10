@@ -1,308 +1,109 @@
-# Backend-Dokumentation
+# 🚗 Car Service API
 
-Diese Dokumentation beschreibt die Nutzung der REST API, die im Rahmen des Backends entwickelt wurde. Das Backend basiert auf dem MERN-Stack (MongoDB, Express.js, React.js, Node.js) für die Frontend-Entwicklung. Es bietet eine Reihe von Endpunkten zur Verwaltung von Benutzer- und Fahrzeugdaten.
+[![Node.js 22 LTS](https://img.shields.io/badge/Node.js-22_LTS-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![API](https://img.shields.io/badge/API-v2-2563eb)](docs/API-v2.md)
+[![Security](https://img.shields.io/badge/Security-hardened-16a34a?logo=shield)](SECURITY.md)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-f59e0b)](LICENSE)
 
-# Eingesetzte Technologien und Pakete 🛠️
+Eine sichere, mandantenfähige REST-API zur Verwaltung von Fahrzeugen und Wartungsereignissen. Die Anwendung ist auf eine getrennte SPA- und API-Origin, MongoDB Replica Sets, Redis und SMTP ausgelegt.
 
-Das Backend dieser Anwendung nutzt eine Vielzahl von Technologien und NPM-Paketen, um eine sichere und effiziente REST API bereitzustellen. Hier eine detaillierte Liste der Kernkomponenten:
+> [!IMPORTANT]
+> Dies ist **API v2**. Die unsichere Alt-API wurde entfernt. Bestehende Clients müssen auf `/api/v2` migrieren.
 
-## Core Technologien
+## ✨ Sicherheitsprofil
 
-- **Node.js**: Eine JavaScript-Laufzeitumgebung, die es ermöglicht, JavaScript auf dem Server auszuführen.
-- **Express.js**: Ein web Application Framework für Node.js, das das Routing, die Middleware und vieles mehr vereinfacht.
-- **MongoDB**: Eine NoSQL-Datenbank, die für ihre Flexibilität und Skalierbarkeit bekannt ist.
-- **Mongoose**: Ein MongoDB Objektmodellierungstool, das eine schemabasierte Lösung zur Modellierung Ihrer Anwendungsdaten bietet.
+| Bereich              | Umsetzung                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| 🔐 Anmeldung         | Kurzlebige Access-Tokens, rotierende und widerrufbare Refresh-Sessions                |
+| 🛡️ Browser-Schutz    | HttpOnly/Secure Refresh-Cookie, CSRF-Token, exakte CORS-Allowlist                     |
+| 👤 Datenschutz       | Eigentümerprüfung auf jeder Ressource, sichere Nutzer-DTOs, keine Hashes in Responses |
+| 📬 Recovery          | Einmalige, gehashte E-Mail-Verifikations- und Passwort-Reset-Tokens                   |
+| 🚦 Missbrauchsschutz | Redis-gestützte globale und Auth-Rate-Limits                                          |
+| 🧱 Infrastruktur     | Helmet, Body-Limit, strukturierte redigierte Logs, Readiness-Endpunkt                 |
 
-## Sicherheit und Authentifizierung
+## 🏗️ Architektur
 
-- **bcrypt**: Ein Paket zur Hashierung von Passwörtern, das hilft, Benutzerpasswörter sicher zu speichern.
-- **jsonwebtoken**: Wird verwendet, um JSON Web Tokens zu erstellen und zu verifizieren, eine wichtige Komponente für die Authentifizierung und Autorisierung in der Anwendung.
-
-## Netzwerk und Middleware
-
-- **cors**: Ein Paket, das Cross-Origin Resource Sharing ermöglicht, um RESTful APIs sicher über verschiedene Domains hinweg zugänglich zu machen.
-- **body-parser**: Parse Middleware, die eingehende Request Bodies in einer Middleware vor dem Handler verfügbar macht.
-- **helmet**: Setzt sichere HTTP-Header für typische Web-Schwachstellen.
-- **express-rate-limit**: Rate Limiting für API- und Auth-Endpunkte.
-
-## Validierung
-
-- **joi**: Validierung und Sanitizing von Request-Body und Parametern.
-
-## Entwicklung und Testing
-
-- **nodemon**: Ein Hilfsprogramm, das die Entwicklung von Node.js-basierten Anwendungen vereinfacht, indem es automatisch den Server neu startet, wenn Dateiänderungen im Verzeichnis erkannt werden.
-
-
-
-## Projektstruktur und Management
-
-Das Projekt folgt einer modularen und übersichtlichen Struktur, um die Wartung und Erweiterbarkeit zu erleichtern. Das Hauptanwendungsdatei `app.js` initialisiert den Server und setzt grundlegende Middleware. Die Geschäftslogik ist in verschiedenen Routen und Controllern organisiert, die mit der Datenbank über Mongoose-Modelle interagieren.
-
-## Sicherheit und Best Practices 🛡️
-
-Zur Gewährleistung der Sicherheit der Anwendung und der Schutz der Benutzerdaten werden verschiedene Maßnahmen und Best Practices eingesetzt:
-
-- **Passwortsicherheit**: `bcrypt` wird für das Hashing und Salzen von Passwörtern verwendet, um sicherzustellen, dass Passwörter auch im Falle eines Datenlecks geschützt sind.
-- **Token-basierte Authentifizierung**: JSON Web Tokens (JWTs) ermöglichen eine sichere und effiziente Überprüfung der Benutzeridentität und unterstützen die Implementierung von zustandslosen Authentifizierungssystemen.
-- **Umgang mit Umgebungsvariablen**: Sensible Konfigurationen wie Datenbankverbindungen und Geheimnisse werden in Umgebungsvariablen außerhalb des Codes verwaltet, um Sicherheitsrisiken zu minimieren.
-- **HTTPS**: Es wird empfohlen, die API über HTTPS zu betreiben, um die Datenübertragung zu verschlüsseln und Man-in-the-Middle-Angriffe zu verhindern.
-
-Diese Maßnahmen helfen dabei, eine robuste und sichere Backend-Anwendung zu gewährleisten, die moderne Sicherheitsanforderungen erfüllt.
-
-
-
-## Voraussetzungen 📋
-
-- Node.js und npm müssen installiert sein.
-- Eine MongoDB-Datenbank ist erforderlich.
-- Eine `.env` Datei mit den notwendigen Umgebungsvariablen (Beispiel: `.env.example`).
-
-## Konfiguration (.env) ⚙️
-
-Pflicht:
-
-- `MONGODB_URI`: MongoDB-Verbindungsstring
-- `JWT_SECRET`: Secret für JWT-Signaturen
-
-Optional:
-
-- `PORT`: Server-Port (Default: 3000)
-- `JWT_ISSUER`: Optionaler Issuer-Claim für JWTs
-- `JWT_AUDIENCE`: Optionaler Audience-Claim für JWTs
-- `CORS_ORIGINS`: Komma-separierte Origin-Whitelist (z. B. `http://localhost:5173,http://localhost:3000`)
-
-## Installation  🛠️
-
-1. Klonen Sie das Repository und navigieren Sie in das Projektverzeichnis.
-2. Installieren Sie die Abhängigkeiten mit `npm install`.
-3. Starten Sie den Server mit `npm run dev` oder `npm run start`.
-4. Führen Sie Tests mit `npm test` aus (nutzt standardmäßig eine In-Memory MongoDB).
-
-## Verwendung der API  📡
-
-Die API bietet Endpunkte zur Verwaltung von Benutzer- und Fahrzeugdaten. Für einige Aktionen ist eine Authentifizierung erforderlich. Im Folgenden finden Sie eine Beschreibung der verfügbaren Endpunkte.
-
-### Benutzer-Endpunkte  🧑
-
-#### 📝 Benutzer registrieren 
-
--  `POST /api/users/register`
-  - Erwartet JSON mit `email`, `password` und `superPassword`.
-
-#### 📝 Benutzer anmelden
-
-- `POST /api/users/login`
-  - Erwartet JSON mit `email` und `password`. Gibt einen JWT zurück.
-
-#### 📝 Passwort zurücksetzen  
-
-- `POST /api/users/reset-password`
-  - Erwartet JSON mit `email`, `superPassword` und `newPassword`.
-
-#### 📝 Benutzer löschen 
-
-- `DELETE /api/users/delete-user`
-  - Erfordert Authentifizierung. Erwartet JSON mit `email` und `superPassword`.
-
-#### 📝 Benutzerdaten abrufen
-
-- `GET /api/users/:userId`
-  - Erfordert Authentifizierung.
-
-#### 📝 Benutzerdaten aktualisieren
-
-- `PUT /api/users/update-user`
-  - Erfordert Authentifizierung. Erwartet JSON mit `email`, `superPassword` und `newPassword`.
-
-### Fahrzeug-Endpunkte  🚗
-
-#### 📝 Fahrzeug registrieren 
-
-- `POST /api/cars/addCar`
-  - Erfordert Authentifizierung. Erwartet JSON mit Fahrzeugdetails.
-  - `userId` wird aus dem JWT abgeleitet und nicht aus dem Body übernommen.
-  - History-Arrays werden serverseitig gepflegt.
-
-```json
-{
-  "fahrzeugart": "PKW",
-  "kennzeichen": "B-XY123",
-  "marke": "Volkswagen",
-  "modell": "Golf",
-  "baujahr": 2017,
-  "kraftstoff": "Diesel",
-  "schadstoffklasse": "Euro 6",
-  "leistungKW": 110,
-  "leistungPS": 150,
-  "kilometerstand": 85000,
-  "nächsteTüvUntersuchung": "2023-10-30",
-  "nächsteoelwechsel": "2023-09-20",
-  "nächsteoelwechselKm": 95000
-}
-
-
-```
-### Array sind leer, wenn keine Einträge vorhanden sind
-```json
-{
-  "userId": "5f8d0d55b54764421b7156d5",
-  "fahrzeugart": "PKW",
-  "kennzeichen": "B-XY123",
-  "marke": "Volkswagen",
-  "modell": "Golf",
-  "baujahr": 2017,
-  "kraftstoff": "Diesel",
-  "schadstoffklasse": "Euro 6",
-  "leistungKW": 110,
-  "leistungPS": 150,
-  "kilometerstand": 85000,
-  "nächsteTüvUntersuchung": "2023-10-30",
-  "nächsteoelwechsel": "2023-09-20",
-  "nächsteoelwechselKm": 95000,
-  "kilometerstandHistory": [],
-  "tuevHistory": [],
-  "oelwechselHistory": [],
-  "serviceHistory": []
-}
+```mermaid
+flowchart LR
+  SPA["🖥️ SPA\nseparate Origin"] -->|"Bearer + CSRF"| API["🔐 Car Service API v2"]
+  API --> Mongo["🗄️ MongoDB\nReplica Set"]
+  API --> Redis["⚡ Redis\nSessions & Limits"]
+  API --> SMTP["📬 SMTP\nVerify & Reset"]
 ```
 
+## 🚀 Schnellstart
 
-#### 📝 Kilometerstand hinzufügen 
+| Voraussetzung | Version / Hinweis                         |
+| ------------- | ----------------------------------------- |
+| Node.js       | 22 LTS (`>=22.21.0 <25`)                  |
+| MongoDB       | Replica Set erforderlich in Produktion    |
+| Redis         | Pflicht für Sessionschutz und Rate Limits |
+| SMTP          | Pflicht für Verifikation und Recovery     |
 
-- `POST /api/cars/:carId/kilometerstand`
-  - Erfordert Authentifizierung. Erwartet JSON mit `kilometerstand`.
-  
-
-```json
-{
-  "kilometerstand": 87000
-}
+```bash
+npm ci
+cp .env.example .env
+# .env mit echten Secret- und Infrastrukturwerten ausfüllen
+npm run dev
 ```
 
+`ACCESS_TOKEN_SECRET`, SMTP-Zugangsdaten und Datenbank-URLs gehören ausschließlich in einen Secret Manager oder eine nicht eingecheckte `.env`-Datei.
 
-#### 📝 TÜV-Eintrag hinzufügen 
+## ⚙️ Konfiguration
 
-- `POST /api/cars/:carId/tuev`
-  - Erfordert Authentifizierung. Erwartet JSON mit `tuev`.
-  - 
+| Variable                      | Zweck                                             |
+| ----------------------------- | ------------------------------------------------- |
+| `MONGODB_URI`                 | MongoDB-Replica-Set-Verbindung                    |
+| `REDIS_URL`                   | Zentraler Store für Rate Limits                   |
+| `ACCESS_TOKEN_SECRET`         | Mindestens 32 zufällige Zeichen für Access-Tokens |
+| `JWT_ISSUER` / `JWT_AUDIENCE` | Feste Token-Bindung an diese API und SPA          |
+| `APP_ORIGIN` / `CORS_ORIGINS` | Exakte Frontend-Origin und E-Mail-Link-Ziel       |
+| `SMTP_*`                      | Versand von Verifikations- und Reset-E-Mails      |
+| `COOKIE_SECURE`               | In Produktion zwingend `true`                     |
 
-```json
-{
-  "tuev": {
-    "datum": "2025-07-23",
-    "bemerkung": "ohne Mängel bestanden"
-  }
-}
+Alle Variablen sind in [.env.example](.env.example) dokumentiert.
+
+## 📡 API-Überblick
+
+| Kategorie    | Endpunkte                                                                |
+| ------------ | ------------------------------------------------------------------------ |
+| 🔑 Auth      | `register`, `verify-email`, `login`, `refresh`, `logout`, Passwort-Reset |
+| 👤 Konto     | `GET /users/me`, Passwortwechsel, vollständige Kontolöschung             |
+| 🚗 Fahrzeuge | Eigene Fahrzeuge erstellen, lesen, ändern, löschen                       |
+| 🧰 Wartung   | Kilometer-, TÜV-, Ölwechsel- und Service-Events pro Fahrzeug             |
+
+Die vollständige Request-/Response-Dokumentation steht in [API v2](docs/API-v2.md). Schreibende Endpunkte akzeptieren nie eine `userId`; der Eigentümer stammt immer aus dem Access-Token.
+
+## 🧪 Qualität und Sicherheit
+
+```bash
+npm run lint
+npm run format:check
+npm test
+npm run audit:production
 ```
 
-#### 📝 Ölwechsel-Eintrag hinzufügen 
+Die Integrationstests prüfen unter anderem Mandantentrennung, Hash-Redaktion, CSRF, Refresh-Rotation und die fachliche Regel gegen rückläufige Kilometerstände.
 
-- `POST /api/cars/:carId/oelwechsel`
-  - Erfordert Authentifizierung. Erwartet JSON mit `oelwechsel`.
+## 🔄 Migration von v1
 
+Vor einem Release unbedingt Backup und Dry-Run ausführen:
 
-```json
-{
-  "oelwechsel": {
-    "datum": "2023-09-20",
-    "kilometerstand": 95000,
-    "naechsterOelwechselKm": 105000
-  }
-}
+```bash
+npm run migrate:v2:dry-run
+npm run migrate:v2
+npm run migrate:v2 -- --send-emails
 ```
 
-#### 📝 Service-Eintrag hinzufügen  
+Die idempotente Migration überführt Fahrzeughistorien in skalierbare Events, entfernt Superpasswort-Hashes und erzwingt für Bestandskonten einen sicheren E-Mail-Reset. Der detaillierte Ablauf inklusive Rückfallpfad steht in [Migration v2](docs/MIGRATION-v2.md).
 
-- `POST /api/cars/:carId/service`
-  - Erfordert Authentifizierung. Erwartet JSON mit `service`.
+## 📚 Betrieb und Sicherheit
 
+- [Betriebshandbuch](docs/OPERATIONS.md)
+- [API v2](docs/API-v2.md)
+- [Migration v2](docs/MIGRATION-v2.md)
+- [Security Policy](SECURITY.md)
 
-```json
-{
-  "service": {
-    "datum": "2023-10-01",
-    "beschreibung": "Jährliche Inspektion inklusive Ölwechsel"
-  }
-}
-```
+## 📄 Lizenz
 
-#### 📝 Fahrzeugdetails abrufen  
-
-- `GET /api/cars/:carId`
-  - Erfordert Authentifizierung.
-
-
-
-#### 📝 Alle Fahrzeuge eines Benutzers abrufen 
-
-- `GET /api/cars/user/:userId`
-  - Erfordert Authentifizierung.
-  - 
-
-#### 📝 Fahrzeug löschen 
-
-- `DELETE /api/cars/:carId`
-  - Erfordert Authentifizierung.
-  - Löscht das Fahrzeug mit der angegebenen `carId`.
-  - Löscht auch alle Einträge in den History-Arrays des Fahrzeugs.
-  
-
-## Fehlerbehandlung ❌
-
-Die API sendet spezifische Fehlermeldungen und Statuscodes zurück, wenn Probleme auftreten. Zum Beispiel:
-
-- `400 Bad Request`: Fehlende oder ungültige Anforderungsdaten.
-- `401 Unauthorized`: Fehlende oder ungültige Authentifizierung.
-- `404 Not Found`: Ressource nicht gefunden.
-- `422 Unprocessable Entity`: Validierungsfehler bei Body oder Parametern.
-- `500 Internal Server Error`: Allgemeiner Serverfehler.
-
-## Sicherheit 🛡️
-
-Die API verwendet JWTs (JSON Web Tokens) für die Authentifizierung. Es ist wichtig, dass der JWT geheim gehalten und sicher übertragen wird. Zusätzlich wird empfohlen, HTTPS zu verwenden, um die Datenübertragung zu verschlüsseln.
-Zusätzlich werden sichere HTTP-Header (helmet), Rate Limiting und eine Origin-Whitelist via CORS unterstützt.
-
-
-## 🔒 Erfordert Authentifizierung  
-
-Einige Endpunkte der API erfordern eine erfolgreiche Authentifizierung, bevor sie aufgerufen werden können. Dies bedeutet, dass für den Zugriff auf diese Endpunkte ein gültiger JWT (JSON Web Token) erforderlich ist, der im `Authorization`-Header der Anfrage übermittelt werden muss. Die Authentifizierung stellt sicher, dass nur registrierte und autorisierte Benutzer bestimmte Aktionen durchführen können.
-
-### Wie funktioniert die Authentifizierung? 
-
-1. **Benutzer anmelden**: Zuerst muss sich ein Benutzer über den `POST /api/users/login` Endpunkt anmelden. Bei erfolgreicher Anmeldung wird ein JWT zurückgegeben.
-   
-2. **Token verwenden**: Der erhaltene JWT muss bei folgenden Anfragen im `Authorization`-Header mitgeführt werden. Der Header sollte wie folgt aussehen: `Authorization: Bearer <Token>`.
-
-### 🔐 Endpunkte, die Authentifizierung erfordern
-
-Die folgenden Endpunkte erfordern, dass der `Authorization`-Header mit einem gültigen JWT vorhanden ist:
-
-- **Benutzer löschen**: `DELETE /api/users/delete-user`
-- **Benutzerdaten abrufen**: `GET /api/users/:userId`
-- **Benutzerdaten aktualisieren**: `PUT /api/users/update-user`
-- **Fahrzeug registrieren**: `POST /api/cars/addCar`
-- **Kilometerstand hinzufügen**: `POST /api/cars/:carId/kilometerstand`
-- **TÜV-Eintrag hinzufügen**: `POST /api/cars/:carId/tuev`
-- **Ölwechsel-Eintrag hinzufügen**: `POST /api/cars/:carId/oelwechsel`
-- **Service-Eintrag hinzufügen**: `POST /api/cars/:carId/service`
-- **Fahrzeugdetails abrufen**: `GET /api/cars/:carId`
-- **Fahrzeug löschen**: `DELETE /api/cars/:carId`
-- **Alle Fahrzeuge eines Benutzers abrufen**: `GET /api/cars/user/:userId`
-
-### ❌ Fehlermeldungen bei Authentifizierung
-
-- **Fehlender Token**: Falls kein Token im `Authorization`-Header angegeben ist, wird die Anfrage mit dem Statuscode `401 Unauthorized` und einer entsprechenden Fehlermeldung abgelehnt.
-- **Ungültiger Token**: Wenn der übermittelte Token ungültig oder abgelaufen ist, wird die Anfrage mit dem Statuscode `403 Forbidden` und einer Fehlermeldung zurückgewiesen.
-
-### 🛡️ Sicherheitshinweise
-
-- **Sicherer Umgang mit Token**: Es ist wichtig, den JWT sicher zu speichern und zu übertragen, um Missbrauch zu verhindern.
-- **HTTPS verwenden**: Für die Kommunikation mit der API sollte stets HTTPS verwendet werden, um die Übertragung des Tokens zu verschlüsseln.
-
-Diese Authentifizierungsmethode sorgt für eine sichere und kontrollierte Nutzung der API, indem sie den Zugriff auf sensible Endpunkte auf autorisierte Benutzer beschränkt.
-
-## Tests ✅
-
-- `npm test` verwendet standardmäßig eine In-Memory MongoDB.
-- Optional kann `MONGO_TEST_URL` gesetzt werden, um eine externe Test-DB zu nutzen.
+Dieses Projekt steht unter der [AGPL-3.0-Lizenz](LICENSE).

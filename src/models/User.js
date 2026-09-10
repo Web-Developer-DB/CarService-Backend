@@ -1,28 +1,13 @@
 import mongoose from 'mongoose';
 
-const userSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    lowercase: true,
-    match: [/\S+@\S+\.\S+/, 'Bitte geben Sie eine gültige E-Mail-Adresse ein']
+const userSchema = new mongoose.Schema(
+  {
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true, maxlength: 254 },
+    passwordHash: { type: String, required: true, select: false },
+    emailVerifiedAt: { type: Date, default: null },
+    tokenVersion: { type: Number, required: true, default: 0, min: 0 }
   },
-  password: {
-    type: String,
-    required: true
-  },
-  superPassword: {
-    type: String,
-    required: true
-  }
-}, {
-  timestamps: true
-});
+  { timestamps: true, strict: 'throw', versionKey: false }
+);
 
-const User = mongoose.model('User', userSchema);
-
-export default User;
-
-// Path: backend/src/models/User.js
+export default mongoose.model('User', userSchema);

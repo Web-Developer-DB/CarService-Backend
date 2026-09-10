@@ -1,47 +1,25 @@
-
-
-
-
 import mongoose from 'mongoose';
 
-const carSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  fahrzeugart: String,
-  kennzeichen: String,
-  marke: String,
-  modell: String,
-  baujahr: Number,
-  kraftstoff: String,
-  schadstoffklasse: String,
-  leistungKW: Number,
-  leistungPS: Number,
-  kilometerstand: Number,
-  nächsteTüvUntersuchung: Date,
-  nächsteoelwechsel: Date,
-  nächsteoelwechselKm: Number,
+const carSchema = new mongoose.Schema(
+  {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    vehicleType: { type: String, trim: true, maxlength: 80 },
+    licensePlate: { type: String, required: true, trim: true, maxlength: 20 },
+    licensePlateNormalized: { type: String, required: true, trim: true, uppercase: true, maxlength: 20 },
+    make: { type: String, trim: true, maxlength: 80 },
+    model: { type: String, trim: true, maxlength: 80 },
+    year: { type: Number, integer: true, min: 1886, max: 2100 },
+    fuelType: { type: String, trim: true, maxlength: 40 },
+    emissionClass: { type: String, trim: true, maxlength: 40 },
+    powerKw: { type: Number, min: 0, max: 2000 },
+    powerPs: { type: Number, min: 0, max: 3000 },
+    odometerKm: { type: Number, required: true, min: 0, default: 0 },
+    nextInspectionAt: Date,
+    nextOilChangeAt: Date,
+    nextOilChangeKm: { type: Number, min: 0 }
+  },
+  { timestamps: true, strict: 'throw', versionKey: false }
+);
 
-  // history fields
-  kilometerstandHistory: [{
-    datum: Date,
-    kilometerstand: Number,
-  }],
-  tuevHistory: [{
-    datum: Date,
-    bemerkung: String, // Optional: Zusätzliche Bemerkungen zum TÜV-Termin
-  }],
-  oelwechselHistory: [{
-    datum: Date,
-    kilometerstand: Number,
-    naechsterOelwechselKm: Number, // Optional: Nächster Ölwechsel nach Kilometern
-  }],
-  serviceHistory: [{
-    datum: Date,
-    beschreibung: String, // Beschreibung des durchgeführten Services
-  }]
-});
-
-carSchema.index({ userId: 1 });
-
-const Car = mongoose.model('Car', carSchema);
-
-export default Car;
+carSchema.index({ userId: 1, licensePlateNormalized: 1 }, { unique: true });
+export default mongoose.model('Car', carSchema);
